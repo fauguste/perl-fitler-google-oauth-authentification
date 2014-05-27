@@ -11,11 +11,11 @@ This filter is simple to install and to use. It delegates authentication and ide
 
 With this filter, website authentication becomes easy. 
 
-* Subscribe to google api you have to register your web application at google apis console : 
+1) Subscribe to google api you have to register your web application at google apis console : 
  
 https://code.google.com/apis/console/
 
-* Download The following perl libraries are needed :
+2) Download The following perl libraries are needed :
 
 ```
 apt-get install libjson-perl
@@ -26,7 +26,7 @@ apt-get install libapache2-mod-perl2
 
 Download perl-filter-google-oauth-authentification and put it on your perl path.
 
-* Apache configuration
+3) Apache configuration
 
 ```
         <Location />
