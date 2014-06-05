@@ -20,6 +20,7 @@ use LWP::UserAgent;
 use HTML::Parse;
 use HTTP::Request::Common;
 use JSON;
+use JSON::WebToken;
 use MIME::Base64 qw(encode_base64);
 use Digest::HMAC_SHA1;
 
@@ -30,9 +31,8 @@ sub handler {
   # Ending point of the google oauth api
   my $endPoint = "https://accounts.google.com/o/oauth2/auth";
   # search for profil and email information
-  my $scope = uri_escape("https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile");
+  my $scope = uri_escape("openid email profile");
   my $verifyTokenUrl = "https://accounts.google.com/o/oauth2/token";
-  my $userInfoUrl = "https://www.googleapis.com/oauth2/v1/userinfo";
   # Url to redirect 
   my $state = $r->construct_url();
   # Url for create the cookie
@@ -59,10 +59,9 @@ sub handler {
     # cookie not expried ?
     if($endTimeCookie gt time) {
       my $emailCookie = $cookieValue{'email'};
-      my $nameCookie = $cookieValue{'name'};
       my $keyCookie = $cookieValue{'key'};
       $hmac->reset();
-      $hmac->add($endTimeCookie . $emailCookie . $nameCookie);
+      $hmac->add($endTimeCookie . $emailCookie);
       my $keyToVerify = encode_base64($hmac->digest);
       # Is a valid cookie ? 
       if($keyCookie eq $keyToVerify) {
@@ -97,38 +96,30 @@ sub handler {
        if($response->code eq '200') {
           # Get the user information 
           my $resToken = from_json($response->content());
-          my $accessToken = $resToken->{'access_token'};
-          $req = GET "$userInfoUrl?access_token=$accessToken";
-          $response = $ua->request($req);
-          if($response->code eq '200') {
-            # Create the user cookie
-            my $userInfo = from_json($response->content());
-            my $endTime = time + $cookieDuration;
-            my $email = $userInfo->{'email'};
-            my $name = $userInfo->{'name'};
-            if($domainName ne '') {
-              if(not $email =~ m/$domainName$/) {
-                $r->log->info("User $email try to access to $redictInitialeUrl");
-                return Apache2::Const::HTTP_NON_AUTHORITATIVE;
-              }
+          my $id_token = $resToken->{'id_token'};
+          my $claims = JSON::WebToken->decode($id_token, '', 0);
+          my $email = $claims->{'email'};
+
+          my $endTime = time + $cookieDuration;
+          my $email = $claims->{'email'};
+          if($domainName ne '') { # Check domain 
+            if($claims->{'hd'} ne $domainName) {
+              $r->log->info("User $email try to access to $redictInitialeUrl");
+              return Apache2::Const::HTTP_NON_AUTHORITATIVE;
             }
-            $hmac->reset();
-            $hmac->add($endTime . $email . $name);
-            my $key = encode_base64($hmac->digest);
-            $query = new CGI;
-            $cookie = $query->cookie(-name=>$cookieName,
-                         -value=>{'name'=>$name, 'email'=>$email, 'endTime'=>$endTime, 'key'=>$key},
+          }
+          $hmac->reset();
+          $hmac->add($endTime . $email);
+          my $key = encode_base64($hmac->digest);
+          $query = new CGI;
+          $cookie = $query->cookie(-name=>$cookieName,
+                         -value=>{'email'=>$email, 'endTime'=>$endTime, 'key'=>$key},
                          -expires=>"+365d",
                          -path=>'/');
-            print $query->header(-cookie=>$cookie);
-            $r->err_headers_out->add( 'Location' => $redictInitialeUrl);
-            $r->log->info("User $email access to $redictInitialeUrl");
-            return Apache2::Const::REDIRECT;
-          }
-          else {
-            $r->log->error("Erreur while getting user information. Status : " . $response->code . " Response : " . $response->as_string);
-            return Apache2::Const::HTTP_INTERNAL_SERVER_ERROR;
-          }
+          print $query->header(-cookie=>$cookie);
+          $r->err_headers_out->add( 'Location' => $redictInitialeUrl);
+          $r->log->info("User $email access to $redictInitialeUrl");
+          return Apache2::Const::REDIRECT;
        }
        else {
          $r->log->error("Erreur while verifying token. Status : " . $response->code . " Response : " . $response->as_string);
