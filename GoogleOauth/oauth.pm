@@ -56,8 +56,9 @@ sub handler {
     my $userCookie = $cookies{$cookieName};
     my %cookieValue = $userCookie->value();
     my $endTimeCookie = $cookieValue{'endTime'};
+    my $expireTime = $endTimeCookie + $cookieDuration;
     # cookie not expried ?
-    if($endTimeCookie gt time) {
+    if($expireTime gt time) {
       my $emailCookie = $cookieValue{'email'};
       my $keyCookie = $cookieValue{'key'};
       $hmac->reset();
@@ -65,7 +66,7 @@ sub handler {
       my $keyToVerify = encode_base64($hmac->digest);
       # Is a valid cookie ? 
       if($keyCookie eq $keyToVerify) {
-         $r->subprocess_env("user_login" => $email);
+         $r->subprocess_env("user_login" => $emailCookie);
          return Apache2::Const::OK;
       }
     }
@@ -101,7 +102,7 @@ sub handler {
           my $claims = JSON::WebToken->decode($id_token, '', 0);
           my $email = $claims->{'email'};
 
-          my $endTime = time + $cookieDuration;
+          my $endTime = time;
           my $email = $claims->{'email'};
           if($domainName ne '') { # Check domain 
             if($claims->{'hd'} ne $domainName) {
