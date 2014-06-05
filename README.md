@@ -22,7 +22,10 @@ apt-get install libjson-perl
 apt-get install libcrypt-ssleay-perl
 apt-get install libdigest-hmac-perl
 apt-get install libapache2-mod-perl2
+apt-get install libmodule-runtime-perl
 ```
+
+Add this library in your path : http://cpansearch.perl.org/src/XAICRON/JSON-WebToken-0.08/lib/JSON/WebToken.pm
 
 Download perl-filter-google-oauth-authentification and put it on your perl path.
 
