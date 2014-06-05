@@ -49,3 +49,11 @@ Download perl-filter-google-oauth-authentification and put it on your perl path.
                 PerlSetVar OauthDomainName "gmail.com"
         </Location>
 ```
+
+4) Retrieve email of the user login in your application
+
+Email is set in the environment variable "user_login".
+You can read it in PHP with this code :
+```
+$_SERVER["user_login"]
+```
