@@ -65,6 +65,7 @@ sub handler {
       my $keyToVerify = encode_base64($hmac->digest);
       # Is a valid cookie ? 
       if($keyCookie eq $keyToVerify) {
+         $r->subprocess_env("user_login" => $email);
          return Apache2::Const::OK;
       }
     }
