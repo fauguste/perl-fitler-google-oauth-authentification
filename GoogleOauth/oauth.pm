@@ -11,7 +11,7 @@ use Apache2::Response    ();
 use Apache2::RequestIO();
 use Apache2::URI ();
 use URI::Escape;
-use URI::URL;
+use URI::URL ();
 use APR::Table;
 use Apache2::Log;
 use CGI qw(:standard);
